@@ -1,4 +1,4 @@
-import { render, Component } from '.';
+import { patch, render, Component } from '.';
 
 /** @jsx createElement */
 const createElement = (type, props, ...children) => {
@@ -8,30 +8,30 @@ const createElement = (type, props, ...children) => {
 
 /* Playground: */
 
-// const oldList = (
-//   <ul className='some-list'>
-//     <li className='some-list__item' key='one'>
-//       One
-//     </li>
-//     <li className='some-list__item' key='two'>
-//       Two
-//     </li>
-//   </ul>
-// );
+const oldList = (
+  <ul className='some-list'>
+    <li className='some-list__item' key='one'>
+      One
+    </li>
+    <li className='some-list__item' key='two'>
+      Two
+    </li>
+  </ul>
+);
 
-// const newList = (
-//   <ul className='some-list'>
-//     <li className='some-list__item' key='three'>
-//       Three
-//     </li>
-//     <li className='some-list__item' key='two'>
-//       Two
-//     </li>
-//   </ul>
-// );
+const newList = (
+  <ul className='some-list'>
+    <li className='some-list__item' key='three'>
+      Three
+    </li>
+    <li className='some-list__item' key='two'>
+      Two
+    </li>
+  </ul>
+);
 
-// const dom = render(oldList, document.querySelector('#root'));
-// patch(dom, newList);
+const dom = render(oldList, document.querySelector('#root'));
+patch(dom, newList);
 
 class TodoItem extends Component {
   render() {
