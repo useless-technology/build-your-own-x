@@ -109,4 +109,4 @@ class Todo extends Component {
   }
 }
 
-render(<Todo />, document.getElementById('root'));
+render(<Todo />, document.querySelector('#root'));
