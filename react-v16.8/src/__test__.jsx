@@ -88,13 +88,14 @@ const commitWork = fiber => {
     }
 
     let domParentFiber = fiber.parent
+    console.log(domParentFiber)
     while (!domParentFiber.dom) {
         domParentFiber = domParentFiber.parent
     }
     const domParent = domParentFiber.dom
-    if (fiber.effectTag === PLACEMENT && fiber.dom !== null) {
+    if (fiber.effectTag === PLACEMENT && fiber.dom != null) {
         domParent.appendChild(fiber.dom)
-    } else if (fiber.effectTag === UPDATE && fiber.dom !== null) {
+    } else if (fiber.effectTag === UPDATE && fiber.dom != null) {
         updateDom(fiber.dom, fiber.alternate.props, fiber.props)
     } else if (fiber.effectTag === DELETION) {
         commitDeletion(fiber, domParent)
@@ -110,6 +111,18 @@ const commitDeletion = (fiber, domParent) => {
     } else {
         commitDeletion(fiber.child, domParent)
     }
+}
+
+const render = (element, container) => {
+    wipRoot = {
+        dom: container,
+        props: {
+            children: [element]
+        },
+        alternate: currentRoot
+    }
+    deletions = []
+    nextUnitOfWork = wipRoot
 }
 
 const workLoop = deadline => {
@@ -130,15 +143,57 @@ const workLoop = deadline => {
 
 requestIdleCallback(workLoop)
 
+/**
+ * add the element to the DOM
+ * create fibers for the element's children
+ * select next unit of work and return it
+ */
+const performUnitOfWork = fiber => {
+    const isFunctionComponent = fiber.type instanceof Function
+
+    if (isFunctionComponent) {
+        updateFunctionComponent(fiber)
+    } else {
+        updateHostComponent(fiber)
+    }
+
+    if (fiber.child) {
+        return fiber.child
+    }
+    let nextFiber = fiber
+    while (nextFiber) {
+        if (nextFiber.sibling) {
+            return nextFiber.sibling
+        }
+        nextFiber = nextFiber.parent
+    }
+}
+
+const updateHostComponent = fiber => {
+    if (!fiber.dom) {
+        fiber.dom = createDom(fiber)
+    }
+    reconcileChildren(fiber, fiber.props.children)
+}
+
+const updateFunctionComponent = fiber => {
+    wipFiber = fiber
+    hookIndex = 0
+    wipFiber.hooks = []
+    // exe fuc
+    const children = [fiber.type(fiber.props)]
+    reconcileChildren(fiber, children)
+}
+
 // To organize the units of work, use fiber tree(a special data structure)
 
 const reconcileChildren = (wipFiber, elements) => {
     let index = 0
-
     let oldFiber = wipFiber.alternate && wipFiber.alternate.child
-
     let prevSibling = null
-    while (index < elements.length || oldFiber !== null) {
+
+    // *
+    while (index < elements.length || oldFiber != null) {
         const element = elements[index]
         let newFiber = null
 
@@ -187,48 +242,6 @@ const reconcileChildren = (wipFiber, elements) => {
     }
 }
 
-const updateHostComponent = fiber => {
-    if (!fiber.dom) {
-        fiber.dom = createDom(fiber)
-    }
-    reconcileChildren(fiber, fiber.props.children)
-}
-
-const updateFunctionComponent = fiber => {
-    wipFiber = fiber
-    hookIndex = 0
-    wipFiber.hooks = []
-    // exe fuc
-    const children = [fiber.type(fiber.props)]
-    reconcileChildren(fiber, children)
-}
-
-/**
- * add the element to the DOM
- * create fibers for the element's children
- * select next unit of work and return it
- */
-const performUnitOfWork = fiber => {
-    const isFunctionComponent = fiber.type instanceof Function
-
-    if (isFunctionComponent) {
-        updateFunctionComponent(fiber)
-    } else {
-        updateHostComponent(fiber)
-    }
-
-    if (fiber.child) {
-        return fiber.child
-    }
-    let nextFiber = fiber
-    while (nextFiber) {
-        if (nextFiber.sibling) {
-            return nextFiber.sibling
-        }
-        nextFiber = nextFiber.parent
-    }
-}
-
 const useState = initial => {
     const oldHook =
         wipFiber.alternate &&
@@ -239,10 +252,8 @@ const useState = initial => {
         queue: []
     }
     const actions = oldHook ? oldHook.queue : []
-    actions.forEach(k => {
-        hook.state = k(hook.state)
-        console.log(hook.state)
-    })
+    actions.forEach(action => (hook.state = action(hook.state)))
+
     const setState = action => {
         hook.queue.push(action)
         wipRoot = {
@@ -253,21 +264,10 @@ const useState = initial => {
         nextUnitOfWork = wipRoot
         deletions = []
     }
+
     wipFiber.hooks.push(hook)
     hookIndex++
     return [hook.state, setState]
-}
-
-const render = (element, container) => {
-    wipRoot = {
-        dom: container,
-        props: {
-            children: [element]
-        },
-        alternate: currentRoot
-    }
-    deletions = []
-    nextUnitOfWork = wipRoot
 }
 
 /**
@@ -288,5 +288,6 @@ const Counter = () => {
     )
 }
 const element = <Counter />
+const container = document.getElementById('root')
 
-render(element, document.getElementById('root'))
+render(element, container)
